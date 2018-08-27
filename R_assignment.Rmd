@@ -1,0 +1,165 @@
+---
+title: "Assignment-3"
+author: '******'
+date: "May 29, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+#Introduction#
+
+Objective of the study was to create a dataset which could be used to predict the relationship between Number of accidents and the total vehicle ownership in Australian states for the year 2016.
+
+For the analysis two datasets were considered
+
+1.Data describing the number of crashes and variables which explains the scenarion in which crashes occured - https://bitre.gov.au/statistics/safety/fatal_road_crash_database.aspx
+
+2.Number of vehicle ownership in Australian States
+http://www.abs.gov.au/AUSSTATS/abs@.nsf/DetailsPage/9208.012%20months%20ended%2030%20June%202016?OpenDocument
+
+#Importing Data in R#
+
+
+
+
+#Checking the Dimensions $ class of objects#
+
+```{r}
+install.packages("readr")
+install.packages("gdata")
+library(readr)
+library(gdata)
+Road_Fatalities <- read.csv("Road_Fatalities.csv", stringsAsFactors = FALSE)
+str(Road_Fatalities)
+Total_Vehicles_and_Km <- read.csv("Total_Vehicles_and_Km.csv")
+str(Total_Vehicles_and_Km)
+Total_Vehicles_and_Km
+```
+
+All the unavaialbale data is coded as "-9", which will be handled in missing data handling in the upcoming sections.
+
+
+#Assigning Labels#
+
+The "State" variable is character type by default and this to be converted to factor variable
+```{r}
+Total_Vehicles_and_Km$Country<-factor(Total_Vehicles_and_Km$Country,levels=c("New South Wales", "Victoria","Queensland","South Australia","Western Australia","Tasmania","Northern Territory","Australian Capital Territory"),
+                                      labels = c("NSW", "VIC","QLD","SA","WA","TAS","NT","ACT"))
+
+
+```
+checking the class of labelled variable
+
+```{r}
+class(Total_Vehicles_and_Km$Country)
+levels(Total_Vehicles_and_Km$Country)
+```
+
+
+#Checking whether data is tidy#
+
+Since each variable are in ts own column and each observation is in its own row and each value has a unique cell we could say the data is in tidy format.
+
+
+#Subsetting $ Filtering Data#
+
+subsetting function was used to eliminate some variables which are outside the scope of the study
+
+```{r}
+#Road_Fatalities1<-select(Road_Fatalities,-(Dayweek:Articulated.Truck..Involvement.))
+
+```
+
+The study focuses only on the year 2016, hence filter function usesd to filter the data for year 2016
+```{r}
+Road_subset <- subset(Road_Fatalities, (Year %in% c("2016")))
+Road_subset
+
+```
+#Checking for missing variables/inconsistencies#
+
+```{r}
+colSums(is.na(Road_Fatalities))
+```
+
+no "NA"'s but all the unavailable information is coded as "-9", hence changing -9 to NA, then checking for missing variables.
+
+```{r}
+
+Road_Fatalities$Speed.Limit[Road_Fatalities$Speed.Limit == -9] <- NA
+Road_Fatalities$Gender[Road_Fatalities$Gender == -9] <- NA
+
+
+```
+
+```{r}
+colSums(is.na(Road_Fatalities))
+```
+
+Got one NA in Gender and the 9 "NA"'s in Speed.Limit. 
+
+#Imputation
+
+For eliminating NA in the Speed.Limit column, we imputed average NA's with mean value 
+```{r}
+Road_Fatalities$Speed.Limit[is.na(Road_Fatalities$Speed.Limit)]<-mean(Road_Fatalities$Speed.Limit,na.rm=TRUE)
+sum(is.na(Road_Fatalities$Speed.Limit))
+Road_Fatalities$Gender[is.na(Road_Fatalities$Gender)]<-mean(Road_Fatalities$Gender,na.rm=TRUE)
+sum(is.na(Road_Fatalities$Gender))
+
+
+```
+
+NA succesfully eliminated.
+
+#Checking for outliers#
+
+Outliers for Speed.Limit $ Age checked using boxplot function
+
+```{r}
+boxplot((Road_Fatalities$Speed.Limit))
+boxplot((Road_Fatalities$Age))
+
+```
+From boxplot, it can be predicted that there is no outliers
+
+#Summarising $ Merging#
+```{r}
+new = summarise(group_by(Road_Fatalities,State),count =n())
+```
+
+For joining the data sets the variable name should be the same
+
+
+```{r}
+names(Total_Vehicles_and_Km)[1]<-"State"
+```
+
+```{r}
+S1<-left_join(new,Total_Vehicles_and_Km,by="State")
+```
+
+#Mutate
+
+Percentage of accidents in each state
+```{r}
+
+mutate(S1, percentageofaccidents=round((S1$count/sum(S1$count))*100,2))
+
+```
+
+
+#Data Transformation
+
+```{r}
+hist(S1$count)
+hist(log10(S1$count))
+```
+
+
+
+
+
+
+
+
